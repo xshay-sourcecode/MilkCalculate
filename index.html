@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Milk Consumption Calendar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 5px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2 id="monthHeading">Milk Consumption Calendar</h2>
+  <table id="calendar">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Liters Consumed</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Calendar days will be inserted here -->
+    </tbody>
+  </table>
+  <button onclick="calculateMonthlyTotal()">Calculate Total</button>
+  <div class="result" id="output"></div>
+
+  <script>
+    const pricePerLiter = 75;
+    const daysInMonth = 30;
+    const calendarBody = document.querySelector('#calendar tbody');
+    const monthHeading = document.getElementById('monthHeading');
+
+    let currentDate = new Date();
+    let currentMonth = currentDate.getMonth();
+    let currentYear = currentDate.getFullYear();
+
+    function getMonthName(monthIndex) {
+      return new Date(currentYear, monthIndex, 1).toLocaleString('default', { month: 'long' });
+    }
+
+    function getStorageKey(day) {
+      return `milk_${currentYear}_${currentMonth}_${day}`;
+    }
+
+    function populateCalendar() {
+      calendarBody.innerHTML = '';
+      for (let i = 1; i <= daysInMonth; i++) {
+        const row = document.createElement('tr');
+        const dateCell = document.createElement('td');
+        const dateStr = `${i.toString().padStart(2, '0')} ${getMonthName(currentMonth)} ${currentYear}`;
+        dateCell.textContent = dateStr;
+
+        const inputCell = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = '0.1';
+        input.min = '0';
+        input.dataset.day = i;
+
+        // Load saved value if exists
+        const savedValue = localStorage.getItem(getStorageKey(i));
+        if (savedValue !== null) {
+          input.value = savedValue;
+        }
+
+        // Save input changes
+        input.addEventListener('input', () => {
+          localStorage.setItem(getStorageKey(i), input.value);
+        });
+
+        inputCell.appendChild(input);
+        row.appendChild(dateCell);
+        row.appendChild(inputCell);
+        calendarBody.appendChild(row);
+      }
+      monthHeading.textContent = `Milk Consumption Calendar - ${getMonthName(currentMonth)} ${currentYear} (₹75/Liter)`;
+    }
+
+    function calculateMonthlyTotal() {
+      const inputs = document.querySelectorAll('input[type="number"]');
+      let totalLiters = 0;
+
+      inputs.forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+          totalLiters += value;
+        }
+      });
+
+      const totalCost = totalLiters * pricePerLiter;
+      document.getElementById('output').innerHTML = 
+        `Total Milk: <strong>${totalLiters.toFixed(2)} liters</strong><br>` +
+        `Total Cost: <strong>₹${totalCost.toFixed(2)}</strong>`;
+
+      // Move to next month after calculation
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+
+      // Update the date in storage
+      localStorage.setItem('currentMonth', currentMonth);
+      localStorage.setItem('currentYear', currentYear);
+
+      populateCalendar();
+    }
+
+    // Load month/year from storage if available
+    const savedMonth = localStorage.getItem('currentMonth');
+    const savedYear = localStorage.getItem('currentYear');
+    if (savedMonth !== null && savedYear !== null) {
+      currentMonth = parseInt(savedMonth);
+      currentYear = parseInt(savedYear);
+    }
+
+    // Initial calendar load
+    populateCalendar();
+  </script>
+</body>
+</html>
