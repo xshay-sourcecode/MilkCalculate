@@ -14,7 +14,16 @@
       padding: 20px;
     }
     h2 {
+      margin-bottom: 10px;
+    }
+    .nav-buttons {
       margin-bottom: 20px;
+    }
+    .nav-buttons button {
+      margin: 0 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
     }
     table {
       border-collapse: collapse;
@@ -33,7 +42,7 @@
       border-radius: 5px;
       border: 1px solid #ccc;
     }
-    button {
+    button.calculate-btn {
       margin-top: 20px;
       padding: 10px 20px;
       background-color: #4CAF50;
@@ -43,7 +52,7 @@
       font-size: 16px;
       cursor: pointer;
     }
-    button:hover {
+    button.calculate-btn:hover {
       background-color: #45a049;
     }
     .result {
@@ -66,6 +75,10 @@
 </head>
 <body>
   <h2 id="monthHeading">Milk Consumption Calendar</h2>
+  <div class="nav-buttons">
+    <button onclick="changeMonth(-1)">&larr; Previous</button>
+    <button onclick="changeMonth(1)">Next &rarr;</button>
+  </div>
   <table id="calendar">
     <thead>
       <tr>
@@ -73,15 +86,13 @@
         <th>Liters Consumed</th>
       </tr>
     </thead>
-    <tbody>
-      <!-- Calendar days will be inserted here -->
-    </tbody>
+    <tbody></tbody>
   </table>
-  <button onclick="calculateMonthlyTotal()">Calculate Total</button>
+  <button class="calculate-btn" onclick="calculateMonthlyTotal()">Calculate Total</button>
   <div class="result" id="output"></div>
 
   <div class="history" id="history">
-    <h3>Last Month's Summary</h3>
+    <h3>Consumption History</h3>
     <div id="historyContent">No previous data.</div>
   </div>
 
@@ -119,13 +130,13 @@
         input.min = '0';
         input.dataset.day = i;
 
-        const savedValue = localStorage.getItem(getStorageKey(i));
+        const savedValue = localStorage.getItem(`milk_${currentYear}_${currentMonth}_${i}`);
         if (savedValue !== null) {
           input.value = savedValue;
         }
 
         input.addEventListener('input', () => {
-          localStorage.setItem(getStorageKey(i), input.value);
+          localStorage.setItem(`milk_${currentYear}_${currentMonth}_${i}`, input.value);
         });
 
         inputCell.appendChild(input);
@@ -152,57 +163,38 @@
         `Total Milk: <strong>${totalLiters.toFixed(2)} liters</strong><br>` +
         `Total Cost: <strong>₹${totalCost.toFixed(2)}</strong>`;
 
-      // Save history for last month
-      let lastMonth = currentMonth - 1;
-      let lastYear = currentYear;
-      if (lastMonth < 0) {
-        lastMonth = 11;
-        lastYear--;
-      }
-      const historyKey = `history_${lastYear}_${lastMonth}`;
+      const historyKey = `history_${currentYear}_${currentMonth}`;
       localStorage.setItem(historyKey, JSON.stringify({ liters: totalLiters, cost: totalCost }));
-
-      // Move to next month
-      currentMonth++;
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-      }
-
-      localStorage.setItem('currentMonth', currentMonth);
-      localStorage.setItem('currentYear', currentYear);
-
-      populateCalendar();
       loadHistory();
     }
 
-    function loadHistory() {
-      let lastMonth = currentMonth - 1;
-      let lastYear = currentYear;
-      if (lastMonth < 0) {
-        lastMonth = 11;
-        lastYear--;
+    function changeMonth(direction) {
+      currentMonth += direction;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      } else if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
       }
-      const historyKey = `history_${lastYear}_${lastMonth}`;
-      const data = localStorage.getItem(historyKey);
-
-      if (data) {
-        const parsed = JSON.parse(data);
-        historyContent.innerHTML = `
-          <strong>${getMonthName(lastMonth)} ${lastYear}</strong><br>
-          Milk Consumed: ${parsed.liters.toFixed(2)} L<br>
-          Total Cost: ₹${parsed.cost.toFixed(2)}
-        `;
-      } else {
-        historyContent.textContent = 'No previous data.';
-      }
+      populateCalendar();
+      document.getElementById('output').innerHTML = '';
     }
 
-    const savedMonth = localStorage.getItem('currentMonth');
-    const savedYear = localStorage.getItem('currentYear');
-    if (savedMonth !== null && savedYear !== null) {
-      currentMonth = parseInt(savedMonth);
-      currentYear = parseInt(savedYear);
+    function loadHistory() {
+      historyContent.innerHTML = '';
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('history_')) {
+          const [_, year, month] = key.split('_');
+          const data = JSON.parse(localStorage.getItem(key));
+          const entry = document.createElement('div');
+          entry.innerHTML = `<strong>${getMonthName(parseInt(month))} ${year}</strong><br>Milk Consumed: ${data.liters.toFixed(2)} L<br>Total Cost: ₹${data.cost.toFixed(2)}<br><br>`;
+          historyContent.appendChild(entry);
+        }
+      });
+      if (historyContent.innerHTML.trim() === '') {
+        historyContent.textContent = 'No previous data.';
+      }
     }
 
     populateCalendar();
