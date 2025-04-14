@@ -98,7 +98,6 @@
 
   <script>
     const pricePerLiter = 75;
-    const daysInMonth = 30;
     const calendarBody = document.querySelector('#calendar tbody');
     const monthHeading = document.getElementById('monthHeading');
     const historyContent = document.getElementById('historyContent');
@@ -111,12 +110,13 @@
       return new Date(currentYear, monthIndex, 1).toLocaleString('default', { month: 'long' });
     }
 
-    function getStorageKey(day) {
-      return `milk_${currentYear}_${currentMonth}_${day}`;
+    function getDaysInMonth(year, month) {
+      return new Date(year, month + 1, 0).getDate();
     }
 
     function populateCalendar() {
       calendarBody.innerHTML = '';
+      const daysInMonth = getDaysInMonth(currentYear, currentMonth);
       for (let i = 1; i <= daysInMonth; i++) {
         const row = document.createElement('tr');
         const dateCell = document.createElement('td');
