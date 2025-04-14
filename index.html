@@ -50,6 +50,18 @@
       margin-top: 20px;
       font-weight: bold;
     }
+    .history {
+      margin-top: 30px;
+      background: #fff;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      max-width: 600px;
+      width: 100%;
+    }
+    .history h3 {
+      margin-top: 0;
+    }
   </style>
 </head>
 <body>
@@ -68,11 +80,17 @@
   <button onclick="calculateMonthlyTotal()">Calculate Total</button>
   <div class="result" id="output"></div>
 
+  <div class="history" id="history">
+    <h3>Last Month's Summary</h3>
+    <div id="historyContent">No previous data.</div>
+  </div>
+
   <script>
     const pricePerLiter = 75;
     const daysInMonth = 30;
     const calendarBody = document.querySelector('#calendar tbody');
     const monthHeading = document.getElementById('monthHeading');
+    const historyContent = document.getElementById('historyContent');
 
     let currentDate = new Date();
     let currentMonth = currentDate.getMonth();
@@ -101,13 +119,11 @@
         input.min = '0';
         input.dataset.day = i;
 
-        // Load saved value if exists
         const savedValue = localStorage.getItem(getStorageKey(i));
         if (savedValue !== null) {
           input.value = savedValue;
         }
 
-        // Save input changes
         input.addEventListener('input', () => {
           localStorage.setItem(getStorageKey(i), input.value);
         });
@@ -136,21 +152,52 @@
         `Total Milk: <strong>${totalLiters.toFixed(2)} liters</strong><br>` +
         `Total Cost: <strong>₹${totalCost.toFixed(2)}</strong>`;
 
-      // Move to next month after calculation
+      // Save history for last month
+      let lastMonth = currentMonth - 1;
+      let lastYear = currentYear;
+      if (lastMonth < 0) {
+        lastMonth = 11;
+        lastYear--;
+      }
+      const historyKey = `history_${lastYear}_${lastMonth}`;
+      localStorage.setItem(historyKey, JSON.stringify({ liters: totalLiters, cost: totalCost }));
+
+      // Move to next month
       currentMonth++;
       if (currentMonth > 11) {
         currentMonth = 0;
         currentYear++;
       }
 
-      // Update the date in storage
       localStorage.setItem('currentMonth', currentMonth);
       localStorage.setItem('currentYear', currentYear);
 
       populateCalendar();
+      loadHistory();
     }
 
-    // Load month/year from storage if available
+    function loadHistory() {
+      let lastMonth = currentMonth - 1;
+      let lastYear = currentYear;
+      if (lastMonth < 0) {
+        lastMonth = 11;
+        lastYear--;
+      }
+      const historyKey = `history_${lastYear}_${lastMonth}`;
+      const data = localStorage.getItem(historyKey);
+
+      if (data) {
+        const parsed = JSON.parse(data);
+        historyContent.innerHTML = `
+          <strong>${getMonthName(lastMonth)} ${lastYear}</strong><br>
+          Milk Consumed: ${parsed.liters.toFixed(2)} L<br>
+          Total Cost: ₹${parsed.cost.toFixed(2)}
+        `;
+      } else {
+        historyContent.textContent = 'No previous data.';
+      }
+    }
+
     const savedMonth = localStorage.getItem('currentMonth');
     const savedYear = localStorage.getItem('currentYear');
     if (savedMonth !== null && savedYear !== null) {
@@ -158,8 +205,8 @@
       currentYear = parseInt(savedYear);
     }
 
-    // Initial calendar load
     populateCalendar();
+    loadHistory();
   </script>
 </body>
 </html>
